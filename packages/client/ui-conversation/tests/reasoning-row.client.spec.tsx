@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { AssistantMarkdown } from '../src/client/chat/AssistantMarkdown.tsx'
@@ -82,7 +82,7 @@ describe('ReasoningRow', () => {
     expect(summary.hasAttribute('data-follow-end')).toBe(false)
   })
 
-  it('expands from either Think or the reasoning summary', () => {
+  it('expands from either the title or the reasoning summary', () => {
     const view = render(
       <AssistantMarkdown
         t={t}
@@ -96,11 +96,11 @@ describe('ReasoningRow', () => {
     expect(row.getAttribute('aria-expanded')).toBe('true')
     expect(view.getByText(/Check persistence/)).toBeTruthy()
 
-    fireEvent.click(view.getByText('Think'))
+    fireEvent.click(view.getByText('思考'))
     expect(row.getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('expanded Think drops the inline summary and renders plain prose, no IN card', () => {
+  it('expanded reasoning drops the inline summary and renders plain prose, no IN card', () => {
     const view = render(
       <AssistantMarkdown
         t={t}
@@ -108,10 +108,34 @@ describe('ReasoningRow', () => {
         streaming={false}
       />,
     )
-    fireEvent.click(view.getByText('Think'))
+    fireEvent.click(view.getByText('思考'))
     expect(view.getAllByText(/Inspect the session/)).toHaveLength(1)
     expect(view.queryByText('IN')).toBeNull()
     expect(view.container.querySelector('[class*="ioCard"]')).toBeNull()
     expect(view.container.querySelector('[class*="thinkBody"]')).not.toBeNull()
+  })
+
+  it('translates reasoning only for display when the browser translator is available', async () => {
+    const translate = vi.fn(async () => '检查会话\n检查持久化')
+    vi.stubGlobal('Translator', {
+      availability: vi.fn(async () => 'available'),
+      create: vi.fn(async () => ({ translate })),
+    })
+    const blocks = [{ kind: 'reasoning' as const, text: 'Inspect the session\nCheck persistence' }]
+    const view = render(
+      <AssistantMarkdown
+        t={t}
+        blocks={blocks}
+        streaming={false}
+      />,
+    )
+
+    await waitFor(() => { expect(view.getByText('检查会话')).toBeTruthy() })
+    expect(translate).toHaveBeenCalledWith('Inspect the session\nCheck persistence')
+    expect(blocks[0]?.text).toBe('Inspect the session\nCheck persistence')
+
+    fireEvent.click(view.getByText('思考'))
+    expect(view.getByText(/检查持久化/)).toBeTruthy()
+    expect(view.queryByText(/Inspect the session/)).toBeNull()
   })
 })

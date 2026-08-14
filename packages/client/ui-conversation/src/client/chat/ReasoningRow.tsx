@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DisclosureRow, IconThinkOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { useThrottledVisualUpdate } from './use-throttled-visual-update.ts'
+import { useChineseReasoningDisplay } from './reasoning-display-translation.ts'
 import a11yCss from './accessibility.module.css'
 import css from './ReasoningRow.module.css'
 
@@ -27,7 +28,8 @@ function latestLine(text: string): string {
 export function ReasoningRow({ text, running, t }: { text: string; running: boolean; t: ChatViewSlotProps['t'] }) {
   const [expanded, setExpanded] = useState(false)
   const summaryRef = useRef<HTMLSpanElement>(null)
-  const summary = running ? latestLine(text) : firstLine(text)
+  const displayText = useChineseReasoningDisplay(text, running)
+  const summary = running ? latestLine(displayText) : firstLine(displayText)
   const scheduleSummaryScroll = useThrottledVisualUpdate(() => {
     const element = summaryRef.current
     if (element === null) return
@@ -46,7 +48,7 @@ export function ReasoningRow({ text, running, t }: { text: string; running: bool
         titleClassName={css.title}
         chevronClassName={css.chevron}
         icon={<IconThinkOutline14 size={14} />}
-        title="Think"
+        title={t('reasoning.title')}
         open={expanded}
         expandable
         expandOnRowClick
@@ -58,7 +60,7 @@ export function ReasoningRow({ text, running, t }: { text: string; running: bool
           </>
         )}
       >
-        <div className={css.thinkBody}>{text}</div>
+        <div className={css.thinkBody}>{displayText}</div>
       </DisclosureRow>
     </div>
   )
