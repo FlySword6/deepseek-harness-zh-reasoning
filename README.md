@@ -154,6 +154,7 @@ pnpm run build
 - `E2E (real DeepSeek API)` 仍然保留，但只有配置了仓库 Secret `DEEPSEEK_API_KEY_EXTERNAL` 时才会真正执行。
 - 没有配置该 Secret 时，workflow 会给出 notice 并跳过付费真实 API E2E，不再把检查标记为失败。
 - 上游用于内部自托管机器的 `CI` master push standby 检查已不再自动触发，避免公开 fork 中出现长期 queued 的 self-hosted runner 检查。
+- 上游发布打包和沙箱证明 workflow 不再随 `master` push 自动运行，需要时可以手动触发。
 
 如果你确实想在 GitHub Actions 里跑真实 API E2E，可以在仓库设置中添加：
 
