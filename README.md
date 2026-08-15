@@ -147,6 +147,22 @@ pnpm run build
 - `pnpm run build` 已通过。
 - `test:web` 在当前 Windows 环境中受到 Playwright 浏览器未安装、`pnpm` 子进程路径和 bash 工具平台差异影响，未作为本次修改的通过依据。
 
+## GitHub Actions
+
+这个仓库是公开展示版，不默认消耗真实 DeepSeek API 调用额度：
+
+- `E2E (real DeepSeek API)` 仍然保留，但只有配置了仓库 Secret `DEEPSEEK_API_KEY_EXTERNAL` 时才会真正执行。
+- 没有配置该 Secret 时，workflow 会给出 notice 并跳过付费真实 API E2E，不再把检查标记为失败。
+- 上游用于内部自托管机器的 `CI` master push standby 检查已不再自动触发，避免公开 fork 中出现长期 queued 的 self-hosted runner 检查。
+
+如果你确实想在 GitHub Actions 里跑真实 API E2E，可以在仓库设置中添加：
+
+```text
+Settings -> Secrets and variables -> Actions -> New repository secret
+Name: DEEPSEEK_API_KEY_EXTERNAL
+Value: <你的 DeepSeek API Key>
+```
+
 ## 和官方版本的区别
 
 官方版本的 Web UI 会原样显示 reasoning 文本。本仓库额外增加了一个纯展示层翻译：
