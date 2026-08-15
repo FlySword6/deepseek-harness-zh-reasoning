@@ -64,28 +64,6 @@ jobs:
     # still bounds retry storms against a slow API while the happy path fans out.
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install (immutable)
-        run: pnpm install --frozen-lockfile
-
-      # The with-key escalation e2e self-skips without a usable runner. Install
-      # bwrap so trusted CI exercises it; the userns knob is best-effort and the
-      # test's functional probe decides.
-      - name: Install bubblewrap (unrestrict userns)
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -yq bubblewrap
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 \
-            || echo "apparmor userns knob absent — the functional probe decides"
-
       # Public showcase forks should not need a paid DeepSeek API key. When the
       # secret is absent, keep the workflow green and skip the real-API steps.
       - name: Preflight (optional DEEPSEEK_API_KEY)
@@ -103,6 +81,33 @@ jobs:
           fi
           echo "run_e2e=true" >> "$GITHUB_OUTPUT"
           echo "DEEPSEEK_API_KEY present."
+
+      - uses: actions/checkout@v6
+        if: steps.preflight.outputs.run_e2e == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.preflight.outputs.run_e2e == 'true'
+
+      - uses: actions/setup-node@v6
+        if: steps.preflight.outputs.run_e2e == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (immutable)
+        if: steps.preflight.outputs.run_e2e == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # The with-key escalation e2e self-skips without a usable runner. Install
+      # bwrap so trusted CI exercises it; the userns knob is best-effort and the
+      # test's functional probe decides.
+      - name: Install bubblewrap (unrestrict userns)
+        if: steps.preflight.outputs.run_e2e == 'true'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 \
+            || echo "apparmor userns knob absent — the functional probe decides"
 
       # The e2e suites boot the example bins in `lib` mode (DSH_EXAMPLE_MODE=lib):
       # the built artifact under plain Node, resolving plugins through real package
